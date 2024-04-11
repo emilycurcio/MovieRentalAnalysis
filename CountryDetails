@@ -1,0 +1,51 @@
+WITH customers_revenue (customer_id,
+					   first_name,
+					   last_name,
+					   country,
+					   city,
+					   total_amount_paid)
+AS
+(SELECT B.customer_id,
+		B.first_name,
+		B.last_name,
+		E.country,
+		D.city,
+		SUM(A.amount) AS total_amount_paid
+FROM payment A
+	INNER JOIN customer B ON A.customer_id = B.customer_id
+	INNER JOIN address C ON B.address_id = C.address_id
+	INNER JOIN city D ON C.city_id = D.city_id
+	INNER JOIN country E ON D.country_id = E.country_id
+WHERE A.customer_id IN
+	(SELECT A.customer_id
+	FROM customer A
+		INNER JOIN address B ON A.address_id = B.address_id
+		INNER JOIN city C ON B.city_id = C.city_id
+	WHERE C.city IN	
+		((SELECT C.city
+		FROM customer A
+		INNER JOIN address B ON A.address_id = B.address_id
+		INNER JOIN city C ON B.city_id = C.city_id
+		INNER JOIN country D ON C.country_id = D.country_id
+		WHERE D.country IN
+			(SELECT D.country
+			FROM customer A
+			INNER JOIN address B ON A.address_id = B.address_id
+			INNER JOIN city C ON B.city_id = C.city_id
+			INNER JOIN country D ON C.country_id = D.country_id
+			GROUP BY D.country
+			ORDER BY COUNT(A.customer_id) DESC)
+		GROUP BY D.country, C.city
+		ORDER BY COUNT(A.customer_id) DESC)))
+GROUP BY B.customer_id,
+		B.first_name,
+		B.last_name,
+		E.country,
+		D.city
+ORDER BY SUM(A.amount) DESC)
+SELECT country,
+		COUNT(DISTINCT customer_id) AS count_of_customers,
+		SUM(total_amount_paid) AS total_revenue
+FROM customers_revenue
+GROUP BY country
+ORDER BY COUNT(DISTINCT customer_id) DESC
