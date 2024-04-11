@@ -1,0 +1,4 @@
+SELECT rental_date,
+		return_date,
+		(CAST(return_date AS DATE) - CAST(rental_date AS DATE)) AS rental_duration_days
+FROM rental
